@@ -92,18 +92,21 @@ fn rustified_pe(binary: &[u8]) -> Rustified {
     let sections = image.get_section_table().unwrap();
 
     for section in sections {
-        if section.name.as_str() == ".data" {
-            let buf = section
-                .pointer_to_raw_data
-                .read(&image, section.size_of_raw_data as usize)
-                .unwrap();
-            for func in RUST_FUNCTIONS {
-                if find_subsequence(buf, func.as_bytes()).is_some() {
-                    return Rustified::Maybe {
-                        cause: String::from(format!("function \"{}\" is found", func)),
-                    };
+        match section.name.as_str() {
+            Ok(x) if x == ".data" => {
+                let buf = section
+                    .pointer_to_raw_data
+                    .read(&image, section.size_of_raw_data as usize)
+                    .unwrap();
+                for func in RUST_FUNCTIONS {
+                    if find_subsequence(buf, func.as_bytes()).is_some() {
+                        return Rustified::Maybe {
+                            cause: String::from(format!("function \"{}\" is found", func)),
+                        };
+                    }
                 }
             }
+            _ => (),
         }
     }
     Rustified::Not
